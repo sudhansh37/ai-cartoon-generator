@@ -1,0 +1,8 @@
+# ---- Core pipeline (CPU only, no GPU / no local PC needed) ----
+numpy>=1.26,<3
+Pillow>=10.0
+requests>=2.31
+
+# ---- Optional speech alignment (workflow installs these; pipeline degrades
+#      gracefully to the built-in energy-based aligner if they are missing) ----
+faster-whisper>=1.0.3 ; python_version >= "3.9"
