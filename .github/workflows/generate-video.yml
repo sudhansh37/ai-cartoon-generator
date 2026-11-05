@@ -1,0 +1,373 @@
+name: 2 · Generate video
+
+# The whole pipeline, from a phone:
+#   ideas → script → voiceover → timing → shot plan → frames → audio → MP4
+#
+# Everything runs on the GitHub Actions CPU runner. Nothing is written back to
+# the repository; the video comes back as a downloadable artifact.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Where are you starting from?"
+        type: choice
+        required: true
+        default: "ideas-needed"
+        options:
+          - "voiceover-ready"
+          - "script-ready"
+          - "ideas-needed"
+      script_text:
+        description: "Final narration script (needed for script-ready and voiceover-ready)"
+        type: string
+        required: false
+        default: ""
+      voiceover_url:
+        description: "Direct link to your MP3/WAV voiceover (Drive/Dropbox direct-download link)"
+        type: string
+        required: false
+        default: ""
+      theme:
+        description: "Theme (used when generating ideas)"
+        type: string
+        required: false
+        default: "original folk-fantasy stories"
+      tone:
+        description: "Tone"
+        type: string
+        required: false
+        default: "cinematic, warm, a little eerie"
+      idea_index:
+        description: "Which idea to build (1-10)"
+        type: string
+        required: false
+        default: "1"
+      duration_sec:
+        description: "Narration length in seconds (20-30 default, 45-60 allowed)"
+        type: string
+        required: false
+        default: "26"
+      fps:
+        description: "Frame rate"
+        type: choice
+        required: false
+        default: "30"
+        options: ["30", "24"]
+      whisper:
+        description: "Speech alignment"
+        type: choice
+        required: false
+        default: "tiny"
+        options: ["tiny", "base", "off"]
+      image_gen:
+        description: "Try AI image generation (optional; falls back to procedural art)"
+        type: boolean
+        required: false
+        default: false
+      preview_only:
+        description: "Only render a few stills + contact sheet (fast check)"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: video-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  render:
+    name: Build the short
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    env:
+      MODE: ${{ inputs.mode }}
+      FPS: ${{ inputs.fps }}
+      DURATION: ${{ inputs.duration_sec }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+      POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
+      TTS_VOICE: ${{ vars.TTS_VOICE }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Ensure ffmpeg
+        run: |
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          fi
+          ffmpeg -version | head -n1
+
+      - name: Install Python deps
+        run: |
+          python -m pip install --quiet --upgrade pip
+          python -m pip install --quiet --disable-pip-version-check -r requirements.txt
+
+      - name: Install optional speech aligner
+        if: ${{ inputs.whisper != 'off' }}
+        continue-on-error: true
+        run: python -m pip install --quiet --disable-pip-version-check faster-whisper
+
+      - name: Install Node deps + Chromium
+        run: |
+          npm ci || npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Prepare folders
+        run: mkdir -p work frames out assets/generated
+
+      # ------------------------------------------------------------------ #
+      # 1. Story + script
+      # ------------------------------------------------------------------ #
+      - name: Generate 10 ideas (ideas-needed mode)
+        if: ${{ inputs.mode == 'ideas-needed' }}
+        run: |
+          python ai/ideas.py --theme "${{ inputs.theme }}" --tone "${{ inputs.tone }}" \
+            --duration "$DURATION" --out work/ideas.json
+
+      - name: Write the narration script
+        run: |
+          set -euo pipefail
+          if [ -n "${{ inputs.script_text }}" ]; then
+            printf '%s\n' "${{ inputs.script_text }}" > work/script.txt
+            echo "Using the script supplied in the workflow inputs."
+          elif [ "$MODE" = "ideas-needed" ]; then
+            python ai/script.py --idea work/ideas.json --index "${{ inputs.idea_index }}" \
+              --duration "$DURATION" --out work/script.txt --story work/story.json
+          else
+            echo "No script supplied and mode is $MODE." >&2
+            echo "Add your final narration to the 'script_text' input so the timing can be aligned." >&2
+            exit 1
+          fi
+          echo "---- script ----"
+          cat work/script.txt
+          echo "----------------"
+
+      # ------------------------------------------------------------------ #
+      # 2. Voiceover
+      # ------------------------------------------------------------------ #
+      - name: Fetch the uploaded voiceover
+        if: ${{ inputs.voiceover_url != '' }}
+        run: |
+          set -euo pipefail
+          echo "Downloading voiceover…"
+          curl -L --fail --retry 5 --retry-delay 3 --retry-all-errors \
+            -o assets/voice_src "${{ inputs.voiceover_url }}"
+          ffprobe -v error -show_entries format=duration -of csv=p=0 assets/voice_src
+          ffmpeg -hide_banner -loglevel error -y -i assets/voice_src -ac 1 -ar 44100 assets/voice.wav
+          echo "voice.wav: $(du -h assets/voice.wav | cut -f1)"
+
+      - name: Generate a voiceover with Gemini TTS (only if none was uploaded)
+        if: ${{ inputs.voiceover_url == '' }}
+        run: |
+          set -euo pipefail
+          if [ -f assets/voice.wav ]; then
+            echo "Using the voiceover already in assets/voice.wav"
+            exit 0
+          fi
+          echo "No voiceover uploaded — asking Gemini TTS to read the script."
+          python ai/tts.py --script work/script.txt --out assets/voice.wav || {
+            echo "::error::TTS unavailable. Upload your MP3/WAV (voiceover_url) and re-run in 'voiceover-ready' mode."
+            exit 1
+          }
+
+      # ------------------------------------------------------------------ #
+      # 3. Timing → plan
+      # ------------------------------------------------------------------ #
+      - name: Analyse voiceover timing
+        run: |
+          WHISPER_FLAG="${{ inputs.whisper }}"
+          if [ "$WHISPER_FLAG" = "off" ]; then WHISPER_FLAG="off"; fi
+          python tools/timing.py \
+            --voice assets/voice.wav \
+            --script work/script.txt \
+            --out work/phrases.json \
+            --fps "$FPS" \
+            --whisper "$WHISPER_FLAG"
+
+      - name: Plan the shots (writes PLAN.md)
+        run: |
+          python ai/scene_planner.py \
+            --script work/script.txt \
+            --phrases work/phrases.json \
+            --story work/story.json \
+            --out work/plan.json \
+            --plan-md PLAN.md \
+            --fps "$FPS"
+
+      # ------------------------------------------------------------------ #
+      # 4. Optional AI images (never blocks the render)
+      # ------------------------------------------------------------------ #
+      - name: Optional AI image generation
+        if: ${{ inputs.image_gen }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python imagegen/pollinations.py --check || {
+            echo "::warning::image service unreachable — continuing with procedural art"
+            exit 0
+          }
+          python - <<'PY'
+          import json, subprocess, sys
+          sys.path.insert(0, "imagegen")
+          from pollinations import PollinationsClient, DownloadError
+          plan = json.load(open("work/plan.json"))
+          client = PollinationsClient()
+          ok = fail = 0
+          for shot in plan["shots"][:6]:
+              prompt = (f"flat 2D bean-head cartoon character, plum ink outlines, "
+                        f"painted 3D {shot['environment']} background, {shot['lighting']} light, "
+                        f"{shot['shotSize']} shot, storybook animation still")
+              try:
+                  client.generate(prompt, f"assets/generated/shot_{shot['index']:03d}.png")
+                  ok += 1
+              except DownloadError as exc:
+                  fail += 1
+                  print(f"::warning::image {shot['index']} failed: {exc}")
+                  if exc.fatal:
+                      break
+          print(f"images ok={ok} failed={fail} (procedural art covers the rest)")
+          PY
+
+      - name: Procedural fallback art
+        continue-on-error: true
+        run: python imagegen/fallback.py --story work/story.json --out assets/generated
+
+      # ------------------------------------------------------------------ #
+      # 5. Frames
+      # ------------------------------------------------------------------ #
+      - name: Preview stills only
+        if: ${{ inputs.preview_only }}
+        run: |
+          node render.mjs --plan work/plan.json --out frames --stills 8 --stills-dir work/stills
+          python tools/sheet.py --frames work/stills --out work/contact_sheet.png --count 8 --cols 4
+
+      - name: Render every frame
+        if: ${{ !inputs.preview_only }}
+        run: |
+          node render.mjs --plan work/plan.json --out frames --log-every 25
+
+      - name: Contact sheet
+        if: ${{ !inputs.preview_only }}
+        run: python tools/sheet.py --frames frames --out work/contact_sheet.png --count 12 --cols 4
+
+      # ------------------------------------------------------------------ #
+      # 6. Audio + encode
+      # ------------------------------------------------------------------ #
+      - name: Music and sound effects
+        if: ${{ !inputs.preview_only }}
+        run: |
+          MOOD=$(python -c "import json;print((json.load(open('work/plan.json')).get('audio') or {}).get('music') or 'march')")
+          python audio/audio.py --plan work/plan.json --out-dir work --mood "$MOOD"
+
+      - name: Mix
+        if: ${{ !inputs.preview_only }}
+        run: |
+          python audio/mix.py --voice assets/voice.wav \
+            --music work/music.wav --sfx work/sfx.wav --out work/mix.wav
+
+      - name: Encode final MP4
+        if: ${{ !inputs.preview_only }}
+        run: |
+          FRAMES=frames AUDIO=work/mix.wav OUT=out/final.mp4 FPS="$FPS" \
+            bash tools/finish.sh
+
+      # ------------------------------------------------------------------ #
+      # 7. Deliver
+      # ------------------------------------------------------------------ #
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Cartoon short — build report"
+            echo ""
+            echo "| item | value |"
+            echo "|---|---|"
+            echo "| mode | $MODE |"
+            echo "| fps | $FPS |"
+            if [ -f work/plan.json ]; then
+              python - <<'PY'
+          import json, os
+          p = json.load(open("work/plan.json"))
+          print(f"| title | {p.get('title')} |")
+          print(f"| duration | {p.get('duration', 0):.2f}s |")
+          print(f"| frames | {p.get('totalFrames')} |")
+          print(f"| shots | {len(p.get('shots', []))} |")
+          print(f"| characters | {', '.join(c['id'] for c in p.get('characters', []))} |")
+          if os.path.exists("work/phrases.json"):
+              ph = json.load(open("work/phrases.json"))
+              print(f"| aligner | {ph.get('aligner')} |")
+          if os.path.exists("work/mix_summary.json"):
+              mx = json.load(open("work/mix_summary.json"))
+              print(f"| mix | voice {mx['voicePeakDb']} dBFS, music {mx['musicOffsetDb']:+.1f} dB, sfx cap {mx['sfxPeakCapRatio']}x |")
+          PY
+            fi
+            echo ""
+            if [ -f out/final.mp4 ]; then
+              echo "### Download"
+              echo "Open the **Artifacts** section of this run and download **cartoon-short**."
+              echo ""
+              echo "It contains the MP4, the contact sheet and PLAN.md."
+            elif [ -f work/contact_sheet.png ]; then
+              echo "### Preview"
+              echo "Preview only: download **cartoon-preview** for the stills contact sheet."
+            else
+              echo "_No video was produced — check the failing step above._"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload video
+        if: ${{ !inputs.preview_only && hashFiles('out/final.mp4') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: cartoon-short
+          path: |
+            out/final.mp4
+            work/contact_sheet.png
+            PLAN.md
+            work/plan.json
+            work/phrases.json
+            work/story.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload preview
+        if: ${{ inputs.preview_only }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: cartoon-preview
+          path: |
+            work/contact_sheet.png
+            work/stills/**
+            PLAN.md
+            work/plan.json
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload render log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-log
+          path: |
+            work/render.log
+            work/render_state.json
+            work/*.json
+          if-no-files-found: warn
+          retention-days: 7
