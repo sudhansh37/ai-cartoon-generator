@@ -582,7 +582,10 @@ function makeCharacterCard(spec) {
 function ensureCharacters(plan) {
   for (const spec of plan.characters) {
     if (!R.charCards.has(spec.id)) {
-      R.charCards.set(spec.id, makeCharacterCard(spec));
+      const card = makeCharacterCard(spec);
+      card.group.visible = false;
+      R.scene.add(card.group); // the card must be in the scene graph to render
+      R.charCards.set(spec.id, card);
     }
   }
 }
