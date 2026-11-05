@@ -1,0 +1,219 @@
+{
+  "title": "The Bridge of Borrowed Steps",
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "duration": 6.0,
+  "totalFrames": 180,
+  "style": "flat-2d-bean-head-in-3d-painted-world",
+  "audio": {
+    "voice": "assets/sample/voice.wav",
+    "music": "march"
+  },
+  "render": {
+    "postprocessing": true,
+    "depthOfField": true,
+    "inkOutlines": true,
+    "shadowQuality": 1024
+  },
+  "characters": [
+    {
+      "id": "hero",
+      "name": "The Walker",
+      "skin": "#f0c49a",
+      "hair": "#2a1a12",
+      "hairStyle": "short",
+      "outfit": "#c0392b",
+      "outfitStyle": "tunic",
+      "pants": "#2f3b52",
+      "shoe": "#3a2a1e",
+      "headgear": "none",
+      "accessory": "scarf",
+      "defaultPose": "stand",
+      "defaultExpression": "determined"
+    },
+    {
+      "id": "keeper",
+      "name": "The Keeper",
+      "skin": "#c98a5e",
+      "hair": "#4a2c18",
+      "hairStyle": "long",
+      "outfit": "#2f6fb5",
+      "outfitStyle": "robe",
+      "pants": "#3a3a3a",
+      "shoe": "#3a2a1e",
+      "headgear": "hood",
+      "accessory": "staff",
+      "defaultPose": "stand",
+      "defaultExpression": "neutral"
+    }
+  ],
+  "shots": [
+    {
+      "index": 0,
+      "startFrame": 0,
+      "endFrame": 45,
+      "words": "They said the bridge only lets you cross in someone else's footsteps.",
+      "text": "They said the bridge only lets you cross in someone else's footsteps.",
+      "shotSize": "wide",
+      "environment": "bridge",
+      "environmentVariant": 1,
+      "lighting": "dawn",
+      "camera": {
+        "move": "reveal",
+        "easing": "easeOut"
+      },
+      "characters": [
+        {
+          "id": "hero",
+          "pose": "stand",
+          "expression": "determined",
+          "x": 0,
+          "facing": 1,
+          "action": "idle"
+        }
+      ],
+      "props": [
+        "railing"
+      ],
+      "vfx": [
+        "dust"
+      ],
+      "sfx": [
+        {
+          "at": 0.4,
+          "name": "thunk",
+          "gain": 0.4
+        }
+      ],
+      "music": "march"
+    },
+    {
+      "index": 1,
+      "startFrame": 45,
+      "endFrame": 90,
+      "words": "He walked it anyway, one careful step at a time.",
+      "text": "He walked it anyway, one careful step at a time.",
+      "shotSize": "medium",
+      "environment": "bridge",
+      "environmentVariant": 1,
+      "lighting": "day",
+      "camera": {
+        "move": "tracking",
+        "easing": "easeInOut"
+      },
+      "characters": [
+        {
+          "id": "hero",
+          "pose": "walk",
+          "expression": "determined",
+          "x": 0,
+          "facing": 1,
+          "action": "walk-in"
+        }
+      ],
+      "props": [],
+      "vfx": [
+        "dust"
+      ],
+      "sfx": [
+        {
+          "at": 0.2,
+          "name": "whoosh",
+          "gain": 0.35
+        }
+      ],
+      "music": "march"
+    },
+    {
+      "index": 2,
+      "startFrame": 90,
+      "endFrame": 135,
+      "words": "Halfway across, the footsteps stopped being his.",
+      "text": "Halfway across, the footsteps stopped being his.",
+      "shotSize": "close-up",
+      "environment": "bridge",
+      "environmentVariant": 1,
+      "lighting": "dusk",
+      "camera": {
+        "move": "push-in",
+        "easing": "easeInOut"
+      },
+      "characters": [
+        {
+          "id": "hero",
+          "pose": "react",
+          "expression": "surprised",
+          "x": 0,
+          "facing": 1,
+          "action": "idle"
+        }
+      ],
+      "props": [],
+      "vfx": [
+        "sparkle"
+      ],
+      "sfx": [
+        {
+          "at": 0.3,
+          "name": "creak",
+          "gain": 0.5
+        }
+      ],
+      "music": "tension"
+    },
+    {
+      "index": 3,
+      "startFrame": 135,
+      "endFrame": 180,
+      "words": "The last pair belonged to the person waiting on the other side.",
+      "text": "The last pair belonged to the person waiting on the other side.",
+      "shotSize": "reaction",
+      "environment": "bridge",
+      "environmentVariant": 1,
+      "lighting": "night",
+      "camera": {
+        "move": "dolly-zoom",
+        "easing": "easeInOut"
+      },
+      "characters": [
+        {
+          "id": "hero",
+          "pose": "stand",
+          "expression": "scared",
+          "x": 0.6,
+          "facing": -1,
+          "action": "idle"
+        },
+        {
+          "id": "keeper",
+          "pose": "point",
+          "expression": "smug",
+          "x": -1.4,
+          "facing": 1,
+          "action": "idle"
+        }
+      ],
+      "props": [
+        "staff"
+      ],
+      "vfx": [
+        "sparkle",
+        "smoke"
+      ],
+      "sfx": [
+        {
+          "at": 0.1,
+          "name": "ting",
+          "gain": 0.6
+        },
+        {
+          "at": 1.2,
+          "name": "rumble",
+          "gain": 0.35
+        }
+      ],
+      "music": "mystery"
+    }
+  ]
+}
