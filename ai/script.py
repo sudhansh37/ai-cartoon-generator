@@ -77,7 +77,10 @@ Return ONLY this JSON object:
 Rules:
 - {sentences} sentences, each one stageable in a single cartoon shot
 - the final sentence is the twist and must be short (max 12 words)
-- colours must be readable against a 3D painted background
+- colours must be bright and readable against a 3D painted background: skin a
+  light tone (luminance above 0.45), outfit a saturated mid-tone — never
+  near-black, or the character turns into a silhouette
+- pick headgear and accessories that say who the character is
 """
 
 
@@ -125,6 +128,33 @@ def deterministic_characters(seed: str) -> list:
     return [hero, other]
 
 
+def _luminance(hexstr: str) -> float:
+    h = hexstr.lstrip("#")
+    r, g, b = (int(h[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def _seeded(arr, seed: str, salt: int) -> str:
+    import hashlib
+    h = int(hashlib.sha256(f"{seed}:{salt}".encode()).hexdigest()[:8], 16)
+    return arr[h % len(arr)]
+
+
+def _tone(value, default: str, lo: float, hi: float, palette, seed: str, salt: int) -> str:
+    """Keep a model-chosen colour only if it will actually read on screen.
+
+    A near-black skin tone turns the whole character into a silhouette against
+    a painted background, so anything outside the luminance window is replaced
+    by a deterministic palette colour.
+    """
+    s = _hex(value, default)
+    if lo <= _luminance(s) <= hi:
+        return s
+    # only fall back to palette entries that are themselves in range
+    usable = [c for c in palette if lo <= _luminance(c) <= hi] or list(palette)
+    return _seeded(usable, seed, salt)
+
+
 def coerce_characters(raw, seed: str) -> list:
     out = []
     if isinstance(raw, list):
@@ -136,12 +166,12 @@ def coerce_characters(raw, seed: str) -> list:
                 "id": cid,
                 "name": str(c.get("name") or cid.title())[:40],
                 "role": str(c.get("role") or "bystander"),
-                "skin": _hex(c.get("skin"), "#f0c49a"),
-                "hair": _hex(c.get("hair"), "#2a1a12"),
+                "skin": _tone(c.get("skin"), "#f0c49a", 0.42, 0.95, SKINS, cid, 1),
+                "hair": _tone(c.get("hair"), "#2a1a12", 0.03, 0.62, HAIRS, cid, 2),
                 "hairStyle": _one_of(c.get("hairStyle"), HAIR_STYLES + ["bald"], "short"),
-                "outfit": _hex(c.get("outfit"), "#c0392b"),
+                "outfit": _tone(c.get("outfit"), "#c0392b", 0.16, 0.92, OUTFITS, cid, 3),
                 "outfitStyle": _one_of(c.get("outfitStyle"), STYLES, "tunic"),
-                "pants": _hex(c.get("pants"), "#2f3b52"),
+                "pants": _tone(c.get("pants"), "#2f3b52", 0.12, 0.85, ["#2f3b52", "#3a3a3a", "#5a4632", "#1f2a3a"], cid, 4),
                 "shoe": _hex(c.get("shoe"), "#3a2a1e"),
                 "headgear": _one_of(c.get("headgear"), GEARS, "none"),
                 "accessory": _one_of(c.get("accessory"), ACCESSORIES, "none"),
