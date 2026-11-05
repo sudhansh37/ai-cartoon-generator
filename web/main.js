@@ -517,7 +517,7 @@ const LIGHT_PRESETS = {
   dawn: { bg: ['#9ec6e8', '#ffd9a8'], hemi: ['#cfe6ff', '#e8c8a0', 0.85], sun: ['#ffd9a0', 2.2, [6, 7, 6]], fog: ['#e8d8c0', 30, 120], ambient: 0.25, tint: '#fff0dd' },
   day: { bg: ['#7ec8f0', '#dff1ff'], hemi: ['#dff3ff', '#cfe0b0', 1.0], sun: ['#fff6e0', 2.6, [7, 12, 6]], fog: ['#cfe8f5', 45, 160], ambient: 0.3, tint: '#ffffff' },
   dusk: { bg: ['#4a5a8a', '#ff9e6b'], hemi: ['#8a96d8', '#d89a7a', 1.0], sun: ['#ffb27a', 2.2, [-7, 5, 5]], fog: ['#9a7a90', 30, 130], ambient: 0.45, tint: '#ffe4d0' },
-  night: { bg: ['#141e3c', '#2a3a6a'], hemi: ['#6a7aba', '#2a3050', 0.95], sun: ['#b8d0ff', 1.4, [-5, 9, 4]], fog: ['#182040', 28, 120], ambient: 0.45, tint: '#c8d8ff' },
+  night: { bg: ['#1a2648', '#3a4a7a'], hemi: ['#8a9ada', '#3a4060', 1.15], sun: ['#c8dcff', 1.8, [-5, 9, 4]], fog: ['#202a4a', 30, 130], ambient: 0.55, tint: '#d8e4ff' },
   storm: { bg: ['#4a5568', '#8a94a8'], hemi: ['#9aa8bd', '#4a5262', 0.7], sun: ['#c8d4e8', 1.2, [-4, 10, 3]], fog: ['#6a7488', 15, 80], ambient: 0.3, tint: '#cfd8e8' },
   interior: { bg: ['#4a5064', '#8a90a8'], hemi: ['#e8ecf8', '#5a6074', 1.15], sun: ['#ffffff', 2.0, [4, 9, 6]], fog: ['#6a7088', 24, 90], ambient: 0.62, tint: '#f4f8ff' },
   magic: { bg: ['#3a2a5a', '#8a5ac8'], hemi: ['#d8b8ff', '#5a3a8a', 1.05], sun: ['#e8c8ff', 2.0, [5, 8, 5]], fog: ['#4a3a6a', 26, 110], ambient: 0.5, tint: '#f0e4ff' },
