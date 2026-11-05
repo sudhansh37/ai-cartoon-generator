@@ -31,8 +31,17 @@ as a **downloadable artifact** — nothing is committed to the repository.
 | `duration_sec` | 20–30 by default, 45–60 also supported |
 | `preview_only` | `true` renders 8 stills + a contact sheet first — cheap way to check framing |
 
-When the run turns green, open the run page → **Artifacts** → `cartoon-short`.
-That zip has `final.mp4`, the contact sheet, `PLAN.md` and the plan JSON.
+When the run turns green, the video is waiting for you in two places:
+
+- **Direct download link** — printed at the bottom of the run summary
+  (`⬇️ Download final.mp4`) and also attached as a GitHub Release asset, so you
+  can bookmark one permanent URL:
+  `https://github.com/<owner>/ai-cartoon-generator/releases/latest/download/final.mp4`
+- **Artifact** — run page → **Artifacts** → `cartoon-short` (MP4 + contact sheet +
+  `PLAN.md` + plan JSON).
+
+Set `publish_release: false` if you do not want a release created; the artifact is
+always produced. Old releases can be deleted from the repo's *Releases* page.
 
 > Tip: always do one `preview_only` run before a full render. A 26-second short
 > is ~780 frames; on a standard runner that is roughly 20–40 minutes of CPU
