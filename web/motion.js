@@ -108,6 +108,10 @@ export function shotCamera(shot, p, t) {
     pos = [look[0] + dx * f, pos[1], look[2] + dz * f];
   }
 
+  // never let the lens sink to floor level — a low angle turns the ground
+  // plane into the whole frame
+  pos[1] = Math.max(pos[1], 0.95);
+
   // handheld drift keeps every shot alive (never a frozen frame)
   const amp = cam.handheld != null ? cam.handheld : 0.035;
 
