@@ -146,16 +146,16 @@ export function paintedTexture(kind = 'plaster', color = '#9c7b62', { size = 512
 }
 
 /* Painted, toon-shaded material. */
-export function paintedMaterial(kind, color, { seed = 1, repeat = 1, emissive = '#000000', side = THREE.FrontSide, flatShading = false } = {}) {
-  const mat = new THREE.MeshToonMaterial({
+export function paintedMaterial(kind, color, { seed = 1, repeat = 1, emissive = '#000000', side = THREE.FrontSide } = {}) {
+  // NOTE: MeshToonMaterial has no flatShading flag — passing one only logs a
+  // warning on every material, so it is deliberately not forwarded.
+  return new THREE.MeshToonMaterial({
     map: paintedTexture(kind, color, { seed, repeat }),
     gradientMap: toonRamp(),
     color: new THREE.Color('#ffffff'),
     emissive: new THREE.Color(emissive),
     side,
-    flatShading,
   });
-  return mat;
 }
 
 export function flatMaterial(color, { emissive = '#000000', side = THREE.FrontSide } = {}) {
