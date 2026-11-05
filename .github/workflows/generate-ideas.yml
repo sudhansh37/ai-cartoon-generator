@@ -32,6 +32,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    env:
+      THEME: ${{ inputs.theme }}
+      TONE: ${{ inputs.tone }}
+      DURATION: ${{ inputs.duration }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,9 +55,9 @@ jobs:
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
         run: |
           python ai/ideas.py \
-            --theme "${{ inputs.theme }}" \
-            --tone "${{ inputs.tone }}" \
-            --duration "${{ inputs.duration }}" \
+            --theme "$THEME" \
+            --tone "$TONE" \
+            --duration "$DURATION" \
             --out work/ideas.json
 
       - name: Summary
@@ -60,7 +65,7 @@ jobs:
         run: |
           echo "## Story ideas" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Theme: **${{ inputs.theme }}** · Tone: ${{ inputs.tone }} · Target: ${{ inputs.duration }}s" >> "$GITHUB_STEP_SUMMARY"
+          echo "Theme: **${THEME}** · Tone: ${TONE} · Target: ${DURATION}s" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
           import json, os
