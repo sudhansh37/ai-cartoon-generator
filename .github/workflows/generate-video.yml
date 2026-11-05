@@ -88,6 +88,12 @@ jobs:
       MODE: ${{ inputs.mode }}
       FPS: ${{ inputs.fps }}
       DURATION: ${{ inputs.duration_sec }}
+      THEME: ${{ inputs.theme }}
+      TONE: ${{ inputs.tone }}
+      IDEA_INDEX: ${{ inputs.idea_index }}
+      SCRIPT_INPUT: ${{ inputs.script_text }}
+      VOICEOVER_URL: ${{ inputs.voiceover_url }}
+      WHISPER: ${{ inputs.whisper }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
       POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
@@ -138,17 +144,17 @@ jobs:
       - name: Generate 10 ideas (ideas-needed mode)
         if: ${{ inputs.mode == 'ideas-needed' }}
         run: |
-          python ai/ideas.py --theme "${{ inputs.theme }}" --tone "${{ inputs.tone }}" \
+          python ai/ideas.py --theme "$THEME" --tone "$TONE" \
             --duration "$DURATION" --out work/ideas.json
 
       - name: Write the narration script
         run: |
           set -euo pipefail
-          if [ -n "${{ inputs.script_text }}" ]; then
-            printf '%s\n' "${{ inputs.script_text }}" > work/script.txt
+          if [ -n "$SCRIPT_INPUT" ]; then
+            printf '%s\n' "$SCRIPT_INPUT" > work/script.txt
             echo "Using the script supplied in the workflow inputs."
           elif [ "$MODE" = "ideas-needed" ]; then
-            python ai/script.py --idea work/ideas.json --index "${{ inputs.idea_index }}" \
+            python ai/script.py --idea work/ideas.json --index "$IDEA_INDEX" \
               --duration "$DURATION" --out work/script.txt --story work/story.json
           else
             echo "No script supplied and mode is $MODE." >&2
@@ -168,7 +174,7 @@ jobs:
           set -euo pipefail
           echo "Downloading voiceover…"
           curl -L --fail --retry 5 --retry-delay 3 --retry-all-errors \
-            -o assets/voice_src "${{ inputs.voiceover_url }}"
+            -o assets/voice_src "$VOICEOVER_URL"
           ffprobe -v error -show_entries format=duration -of csv=p=0 assets/voice_src
           ffmpeg -hide_banner -loglevel error -y -i assets/voice_src -ac 1 -ar 44100 assets/voice.wav
           echo "voice.wav: $(du -h assets/voice.wav | cut -f1)"
@@ -192,8 +198,7 @@ jobs:
       # ------------------------------------------------------------------ #
       - name: Analyse voiceover timing
         run: |
-          WHISPER_FLAG="${{ inputs.whisper }}"
-          if [ "$WHISPER_FLAG" = "off" ]; then WHISPER_FLAG="off"; fi
+          WHISPER_FLAG="${WHISPER:-tiny}"
           python tools/timing.py \
             --voice assets/voice.wav \
             --script work/script.txt \
