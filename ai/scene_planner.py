@@ -489,10 +489,20 @@ def main() -> int:
     if os.path.exists(args.story):
         with open(args.story, "r", encoding="utf-8") as f:
             story = json.load(f)
-    if not story.get("characters"):
-        story["characters"] = []
     if not story.get("title"):
         story["title"] = "Untitled"
+
+    # script-ready / voiceover-ready runs have no character sheet yet: build a
+    # deterministic cast from the story title so the plan always has characters.
+    if not story.get("characters"):
+        try:
+            from script import deterministic_characters  # same folder
+            story["characters"] = deterministic_characters(story["title"])
+        except Exception:
+            story["characters"] = [{"id": "hero", "name": "Hero", "role": "protagonist"}]
+        print(f"[plan] no character sheet found — generated {len(story['characters'])} characters")
+        with open(args.story, "w", encoding="utf-8") as f:
+            json.dump(story, f, indent=2, ensure_ascii=False)
 
     script_text = ""
     if os.path.exists(args.script):
