@@ -417,15 +417,17 @@ const ENV_BUILDERS = {
     const g = new THREE.Group();
     const upd = [];
     g.add(ground('grass', '#7fae5e', 60));
-    g.add(house(rng, 0, -4, 1.9, '#f0ddc2', '#a8442f'));
-    g.add(plane(3.4, 12, paintedMaterial('stone', '#c2b49a', { repeat: 3, seed: 61 }), { x: 0, y: 0.03, z: 3, rx: -Math.PI / 2 }));
-    // fence
+    // pushed back and smaller so a character standing at the origin is never
+    // buried in a wall, and a wide shot still reads as a house
+    g.add(house(rng, 0, -8, 1.45, '#f0ddc2', '#a8442f'));
+    g.add(plane(3.0, 10, paintedMaterial('stone', '#c2b49a', { repeat: 3, seed: 61 }), { x: 0, y: 0.03, z: 1.5, rx: -Math.PI / 2 }));
+    // fence, well behind the character
     for (let x = -6; x <= 6; x += 1.2) {
-      g.add(box(0.14, 1.1, 0.14, paintedMaterial('wood', '#8a6a42', { seed: 62 }), x, 0.55, 5.4));
+      g.add(box(0.14, 1.1, 0.14, paintedMaterial('wood', '#8a6a42', { seed: 62 }), x, 0.55, 3.6));
     }
-    g.add(box(13, 0.12, 0.12, paintedMaterial('wood', '#8a6a42', { seed: 62 }), 0, 0.85, 5.4));
-    g.add(tree(rng, -5.5, 1.5, 1.3));
-    g.add(tree(rng, 5.8, 0.5, 1.0));
+    g.add(box(13, 0.12, 0.12, paintedMaterial('wood', '#8a6a42', { seed: 62 }), 0, 0.85, 3.6));
+    g.add(tree(rng, -5.5, -1.0, 1.3));
+    g.add(tree(rng, 5.8, -2.0, 1.0));
     for (let i = 0; i < 3; i++) g.add(cloud(rng, (rng() - 0.5) * 30, 10 + rng() * 3, -20 - rng() * 15, 1.3));
     return { group: g, updaters: upd };
   },
@@ -517,7 +519,7 @@ const LIGHT_PRESETS = {
   dusk: { bg: ['#3b4a7a', '#ff9e6b'], hemi: ['#7a86c8', '#c88a6a', 0.75], sun: ['#ff9a5a', 2.0, [-7, 5, 5]], fog: ['#8a6a80', 25, 110], ambient: 0.3, tint: '#ffd8c0' },
   night: { bg: ['#0f1730', '#2a3a6a'], hemi: ['#4a5a9a', '#1a2038', 0.55], sun: ['#9ab8ff', 0.9, [-5, 9, 4]], fog: ['#101830', 20, 90], ambient: 0.2, tint: '#b8c8ff' },
   storm: { bg: ['#4a5568', '#8a94a8'], hemi: ['#9aa8bd', '#4a5262', 0.7], sun: ['#c8d4e8', 1.2, [-4, 10, 3]], fog: ['#6a7488', 15, 80], ambient: 0.3, tint: '#cfd8e8' },
-  interior: { bg: ['#3a3f52', '#6a7088'], hemi: ['#d8dcea', '#4a4f62', 0.9], sun: ['#ffffff', 1.4, [4, 9, 6]], fog: ['#4a4f62', 18, 70], ambient: 0.45, tint: '#f0f4ff' },
+  interior: { bg: ['#4a5064', '#8a90a8'], hemi: ['#e8ecf8', '#5a6074', 1.15], sun: ['#ffffff', 2.0, [4, 9, 6]], fog: ['#6a7088', 24, 90], ambient: 0.62, tint: '#f4f8ff' },
   magic: { bg: ['#2a1a4a', '#7a4ab8'], hemi: ['#c8a8ff', '#4a2a7a', 0.9], sun: ['#d8b8ff', 1.8, [5, 8, 5]], fog: ['#3a2a5a', 20, 90], ambient: 0.35, tint: '#e8d8ff' },
 };
 
@@ -568,7 +570,7 @@ function makeCharacterCard(spec) {
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.minFilter = THREE.LinearFilter;
   const mat = new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false, side: THREE.DoubleSide });
-  const height = 2.6;
+  const height = 2.3;
   const width = height * (CARD_W / CARD_H);
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, height), mat);
   mesh.position.y = height / 2;
@@ -755,7 +757,7 @@ function initRenderer() {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.15;
   R.renderer = renderer;
 
   const camera = new THREE.PerspectiveCamera(40, R.width / R.height, 0.1, 400);
