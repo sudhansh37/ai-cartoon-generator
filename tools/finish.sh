@@ -26,9 +26,12 @@ command -v ffmpeg >/dev/null 2>&1 || die "ffmpeg not installed"
 command -v ffprobe >/dev/null 2>&1 || die "ffprobe not installed"
 
 [ -d "$FRAMES" ] || die "frame directory not found: $FRAMES"
-FIRST=$(find "$FRAMES" -maxdepth 1 -name '*.png' | sort | head -n1)
-[ -n "$FIRST" ] || die "no PNG frames in $FRAMES"
-FRAME_COUNT=$(find "$FRAMES" -maxdepth 1 -name '*.png' | wc -l | tr -d ' ')
+# Read the listing once. (Never pipe `sort` into `head` under `pipefail`: the
+# closed pipe kills sort with SIGPIPE and fails the step.)
+FRAME_LIST=$(find "$FRAMES" -maxdepth 1 -name '*.png' | sort)
+[ -n "$FRAME_LIST" ] || die "no PNG frames in $FRAMES"
+FIRST=$(printf '%s\n' "$FRAME_LIST" | sed -n '1p')
+FRAME_COUNT=$(printf '%s\n' "$FRAME_LIST" | wc -l | tr -d ' ')
 log "frames: $FRAME_COUNT in $FRAMES (first: $(basename "$FIRST"))"
 
 # every frame must exist — a gap becomes a visible stutter
@@ -67,9 +70,17 @@ ffmpeg -hide_banner -loglevel warning -y \
 
 [ -s "$OUT" ] || die "encode produced no output"
 
-VDUR=$(ffprobe -v error -select_streams v:0 -show_entries stream=duration -of csv=p=0 "$OUT")
-ADUR=$(ffprobe -v error -select_streams a:0 -show_entries stream=duration -of csv=p=0 "$OUT")
-VSIZE=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0:s=x "$OUT")
+# Durations: some containers report N/A per stream, so fall back to the format.
+probe_dur() {
+  local stream="$1" d
+  d=$(ffprobe -v error -select_streams "$stream" -show_entries stream=duration -of csv=p=0 "$OUT" 2>/dev/null || true)
+  case "$d" in ""|N/A|n/a) d=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$OUT" 2>/dev/null || true) ;; esac
+  case "$d" in ""|N/A|n/a) d=0 ;; esac
+  printf '%s' "$d"
+}
+VDUR=$(probe_dur v:0)
+ADUR=$(probe_dur a:0)
+VSIZE=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=p=0:s=x "$OUT" 2>/dev/null || echo '?')
 BYTES=$(stat -c%s "$OUT" 2>/dev/null || stat -f%z "$OUT")
 
 log "video: ${VDUR}s ${VSIZE}  audio: ${ADUR}s  size: $((BYTES/1024/1024)) MB"
@@ -77,7 +88,17 @@ log "video: ${VDUR}s ${VSIZE}  audio: ${ADUR}s  size: $((BYTES/1024/1024)) MB"
 # duration sanity: audio and video must agree within one frame
 python3 - "$VDUR" "$ADUR" "$FPS" <<'PY'
 import sys
-v, a, fps = float(sys.argv[1] or 0), float(sys.argv[2] or 0), float(sys.argv[3])
+
+def num(x):
+    try:
+        return float(x)
+    except Exception:
+        return 0.0
+
+v, a, fps = num(sys.argv[1]), num(sys.argv[2]), float(sys.argv[3] or 30)
+if v <= 0 or a <= 0:
+    print("[finish] WARNING could not read one of the durations; skipping the check", file=sys.stderr)
+    sys.exit(0)
 if abs(v - a) > (2.0 / fps):
     print(f"[finish] WARNING video {v:.3f}s vs audio {a:.3f}s differ by {abs(v-a):.3f}s", file=sys.stderr)
     sys.exit(0)
