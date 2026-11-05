@@ -121,7 +121,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Generate a voiceover with Gemini TTS (optional)")
     ap.add_argument("--script", default="work/script.txt")
     ap.add_argument("--out", default="assets/voice.wav")
-    ap.add_argument("--voice", default=os.environ.get("TTS_VOICE", "Kore"), choices=VOICES)
+    ap.add_argument("--voice", default=(os.environ.get("TTS_VOICE") or "Kore"), choices=VOICES)
     ap.add_argument("--model", default=os.environ.get("TTS_MODEL") or None)
     ap.add_argument("--style", default="Speak warmly, like a storyteller, unhurried, cinematic.")
     args = ap.parse_args()
