@@ -1,0 +1,45 @@
+{
+  "title": "The Bridge of Borrowed Steps",
+  "hook": "The bridge only lets you cross if you walk in someone else's footsteps.",
+  "twist": "The last set of footsteps belongs to the person waiting on the other side.",
+  "classification": "folklore",
+  "duration": 26,
+  "script": "They said the bridge only lets you cross in someone else's footsteps. He walked it anyway, one careful step at a time. Halfway across, the footsteps stopped being his. The last pair belonged to the person waiting on the other side.",
+  "sentences": [
+    "They said the bridge only lets you cross in someone else's footsteps.",
+    "He walked it anyway, one careful step at a time.",
+    "Halfway across, the footsteps stopped being his.",
+    "The last pair belonged to the person waiting on the other side."
+  ],
+  "characters": [
+    {
+      "id": "hero",
+      "name": "The Walker",
+      "role": "protagonist",
+      "skin": "#f0c49a",
+      "hair": "#2a1a12",
+      "hairStyle": "short",
+      "outfit": "#c0392b",
+      "outfitStyle": "tunic",
+      "pants": "#2f3b52",
+      "shoe": "#3a2a1e",
+      "headgear": "none",
+      "accessory": "scarf"
+    },
+    {
+      "id": "keeper",
+      "name": "The Keeper",
+      "role": "antagonist",
+      "skin": "#c98a5e",
+      "hair": "#4a2c18",
+      "hairStyle": "long",
+      "outfit": "#2f6fb5",
+      "outfitStyle": "robe",
+      "pants": "#3a3a3a",
+      "shoe": "#3a2a1e",
+      "headgear": "hood",
+      "accessory": "staff"
+    }
+  ],
+  "source": "sample"
+}
