@@ -1,0 +1,28 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Generated media / intermediates (never commit renders)
+work/
+frames/
+out/
+assets/generated/
+assets/voice.*
+assets/*.wav
+assets/*.mp3
+
+# Keep the folder structure
+!work/.gitkeep
+!frames/.gitkeep
+!out/.gitkeep
+!assets/generated/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
