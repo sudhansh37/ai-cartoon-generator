@@ -1,0 +1,21 @@
+{
+  "name": "ai-cartoon-generator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AI cartoon audio shorts generator: Gemini story brain + Three.js bean-head animation engine, rendered frame-by-frame with Playwright on CPU.",
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "scripts": {
+    "render": "node render.mjs --plan work/plan.json --out frames",
+    "render:sample": "node render.mjs --plan assets/sample/plan.json --out frames",
+    "render:range": "node render.mjs --plan work/plan.json --out frames --range 0-59",
+    "stills": "node render.mjs --plan work/plan.json --out frames --stills 8 --stills-dir work/stills",
+    "serve": "node render.mjs --plan work/plan.json --out frames --serve"
+  },
+  "dependencies": {
+    "playwright": "^1.48.0",
+    "three": "^0.169.0"
+  }
+}
