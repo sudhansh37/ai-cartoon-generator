@@ -60,13 +60,17 @@ export const CAMERA_MOVES = Object.keys(MOVE_PRESETS);
  * a "wide" and an "extreme close-up" would be framed identically, because the
  * camera presets only describe the move. */
 export const SHOT_SIZE_SCALE = {
-  wide: 1.40,
-  environment: 1.65,
+  wide: 1.15,
+  environment: 1.30,
   medium: 1.00,
-  'close-up': 0.72,
-  'extreme-close-up': 0.52,
-  reaction: 0.60,
+  'close-up': 0.78,
+  'extreme-close-up': 0.62,
+  reaction: 0.68,
 };
+
+// A camera closer than this to its subject ends up inside fences, walls and
+// props, so the distance is clamped from below.
+export const MIN_SUBJECT_DISTANCE = 2.9;
 
 const HEAD_SHOTS = new Set(['close-up', 'extreme-close-up', 'reaction']);
 
@@ -93,6 +97,15 @@ export function shotCamera(shot, p, t) {
   ];
   if (HEAD_SHOTS.has(shot.shotSize)) {
     look[1] = look[1] + (1.75 - look[1]) * 0.75;
+  }
+
+  // keep the camera outside the set dressing
+  const dx = pos[0] - look[0];
+  const dz = pos[2] - look[2];
+  const flat = Math.hypot(dx, dz);
+  if (flat > 1e-4 && flat < MIN_SUBJECT_DISTANCE) {
+    const f = MIN_SUBJECT_DISTANCE / flat;
+    pos = [look[0] + dx * f, pos[1], look[2] + dz * f];
   }
 
   // handheld drift keeps every shot alive (never a frozen frame)
