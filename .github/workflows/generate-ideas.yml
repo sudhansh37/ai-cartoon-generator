@@ -1,0 +1,89 @@
+name: 1 · Generate story ideas
+
+# Tap "Run workflow" on your phone, pick a theme, and get 10 original ideas back
+# as a downloadable artifact. No local PC needed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      theme:
+        description: "Theme or premise (e.g. 'forgotten lighthouses')"
+        required: false
+        default: "original folk-fantasy stories"
+      tone:
+        description: "Tone"
+        required: false
+        default: "cinematic, warm, a little eerie"
+      duration:
+        description: "Target narration length in seconds (20-60)"
+        required: false
+        default: "26"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ideas-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ideas:
+    name: Write 10 ideas
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: python -m pip install --quiet --disable-pip-version-check requests
+
+      - name: Generate ideas
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+        run: |
+          python ai/ideas.py \
+            --theme "${{ inputs.theme }}" \
+            --tone "${{ inputs.tone }}" \
+            --duration "${{ inputs.duration }}" \
+            --out work/ideas.json
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Story ideas" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Theme: **${{ inputs.theme }}** · Tone: ${{ inputs.tone }} · Target: ${{ inputs.duration }}s" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, os
+          p = "work/ideas.json"
+          if not os.path.exists(p):
+              print("_ideas.json was not produced — check the job log._")
+          else:
+              d = json.load(open(p))
+              print(f"_source: {d.get('source')}, {d.get('count')} ideas_\n")
+              for i, idea in enumerate(d["ideas"], 1):
+                  print(f"**{i}. {idea['title']}** — _{idea['classification']}_\n")
+                  print(f"- **Hook:** {idea['hook']}")
+                  print(f"- **Twist:** {idea['twist']}")
+                  print(f"- **Why it animates:** {idea['why_it_animates']}\n")
+              print("\nNext: open **2 · Generate video**, set mode to `ideas-needed`, "
+                    "and put the number of the idea you want in `idea_index`.")
+          PY
+
+      - name: Upload ideas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: story-ideas
+          path: work/ideas.json
+          if-no-files-found: warn
+          retention-days: 14
