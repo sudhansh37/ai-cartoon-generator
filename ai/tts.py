@@ -27,6 +27,7 @@ except Exception:  # pragma: no cover
     requests = None  # type: ignore
 
 DEFAULT_TTS_MODELS = [
+    os.environ.get("TTS_MODEL") or "gemini-3.8-flash-lite-tts",
     "gemini-2.5-flash-preview-tts",
     "gemini-2.5-pro-preview-tts",
 ]
@@ -96,9 +97,17 @@ def synthesize(text: str, out_path: str, voice: str = "Kore", model: str | None 
             last_error = "response contained no inline audio data"
             continue
 
-        # Gemini TTS returns raw PCM (usually 24 kHz, 16-bit, mono)
+        os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
+
+        # Newer TTS models return a complete WAV container; older ones return
+        # raw PCM (usually 24 kHz, 16-bit, mono). Handle both.
+        if "wav" in (mime or "").lower() or pcm[:4] == b"RIFF":
+            with open(out_path, "wb") as f:
+                f.write(pcm)
+            return out_path
+
         sr = 24000
-        for token in mime.split(";"):
+        for token in (mime or "").split(";"):
             token = token.strip()
             if token.startswith("rate="):
                 try:
@@ -106,7 +115,6 @@ def synthesize(text: str, out_path: str, voice: str = "Kore", model: str | None 
                 except Exception:
                     pass
 
-        os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
         with wave.open(out_path, "wb") as w:
             w.setnchannels(1)
             w.setsampwidth(2)
