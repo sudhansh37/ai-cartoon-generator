@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>AI Cartoon Generator — render stage</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #101018; overflow: hidden; }
+    #stage { display: block; width: 1080px; height: 1920px; }
+    #err {
+      position: fixed; inset: 0; display: none; padding: 40px;
+      font: 16px/1.5 monospace; color: #ffb4b4; background: #1a1014; white-space: pre-wrap;
+    }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "/node_modules/three/build/three.module.js",
+      "three/addons/": "/node_modules/three/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="stage" width="1080" height="1920"></canvas>
+  <pre id="err"></pre>
+  <script type="module" src="./main.js"></script>
+  <script>
+    // Surface fatal errors to the renderer instead of failing silently.
+    window.addEventListener('error', (e) => {
+      window.__error = String(e.message || e.error);
+      const el = document.getElementById('err');
+      el.style.display = 'block';
+      el.textContent = window.__error;
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      window.__error = String((e.reason && e.reason.stack) || e.reason);
+    });
+  </script>
+</body>
+</html>
