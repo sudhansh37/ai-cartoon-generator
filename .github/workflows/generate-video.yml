@@ -119,11 +119,27 @@ jobs:
           python-version: "3.11"
 
       - name: Ensure ffmpeg
+        timeout-minutes: 6
         run: |
-          if ! command -v ffmpeg >/dev/null 2>&1; then
-            sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          set -u
+          if command -v ffmpeg >/dev/null 2>&1; then
+            echo "ffmpeg already available"
+            ffmpeg -version 2>/dev/null | sed -n '1p'
+            exit 0
           fi
-          ffmpeg -version | head -n1
+          echo "ffmpeg missing — trying apt"
+          sudo apt-get update -qq -o Acquire::Retries=1 || true
+          sudo apt-get install -y -qq ffmpeg || true
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            echo "apt did not provide ffmpeg — falling back to a static build"
+            curl -sL --retry 3 --retry-delay 2 -o /tmp/ff.tar.xz \
+              https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
+            mkdir -p /tmp/ff && tar -xf /tmp/ff.tar.xz -C /tmp/ff --strip-components=1
+            sudo cp /tmp/ff/ffmpeg /tmp/ff/ffprobe /usr/local/bin/
+            sudo chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe
+          fi
+          command -v ffmpeg >/dev/null 2>&1 || { echo "::error::ffmpeg could not be installed"; exit 1; }
+          ffmpeg -version 2>/dev/null | sed -n '1p'
 
       - name: Install Python deps
         run: |
