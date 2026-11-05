@@ -70,7 +70,7 @@ export const SHOT_SIZE_SCALE = {
 
 // A camera closer than this to its subject ends up inside fences, walls and
 // props, so the distance is clamped from below.
-export const MIN_SUBJECT_DISTANCE = 2.9;
+export const MIN_SUBJECT_DISTANCE = 4.6;
 
 const HEAD_SHOTS = new Set(['close-up', 'extreme-close-up', 'reaction']);
 
