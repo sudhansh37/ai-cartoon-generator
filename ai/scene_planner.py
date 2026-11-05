@@ -115,6 +115,9 @@ Rules:
 - exactly {n} shots, one per sentence, in the same order
 - illustrate each sentence literally, but vary shot size: no more than two shots
   of the same size in a row
+- use at least THREE different environments across the piece — do not put every
+  shot in the same room or street; a change of environment is what makes the
+  cut feel like a film
 - the first shot establishes the world (wide or environment)
 - the last shot is a close-up or reaction and holds on the twist
 - characters[].id must be one of: {ids}
