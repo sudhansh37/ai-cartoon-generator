@@ -56,6 +56,20 @@ const MOVE_PRESETS = {
 
 export const CAMERA_MOVES = Object.keys(MOVE_PRESETS);
 
+/* Shot size controls how far the camera sits from its subject. Without this,
+ * a "wide" and an "extreme close-up" would be framed identically, because the
+ * camera presets only describe the move. */
+export const SHOT_SIZE_SCALE = {
+  wide: 1.40,
+  environment: 1.65,
+  medium: 1.00,
+  'close-up': 0.72,
+  'extreme-close-up': 0.52,
+  reaction: 0.60,
+};
+
+const HEAD_SHOTS = new Set(['close-up', 'extreme-close-up', 'reaction']);
+
 export function shotCamera(shot, p, t) {
   const cam = shot.camera || {};
   const preset = MOVE_PRESETS[cam.move] || MOVE_PRESETS.static;
@@ -70,8 +84,20 @@ export function shotCamera(shot, p, t) {
   let pos = lerp3(from, to, e);
   const look = lerp3(lookFrom, lookTo, e);
 
+  // frame the shot: distance scales with shot size, close-ups aim at the head
+  const k = cam.scale != null ? cam.scale : (SHOT_SIZE_SCALE[shot.shotSize] || 1);
+  pos = [
+    look[0] + (pos[0] - look[0]) * k,
+    look[1] + (pos[1] - look[1]) * (0.6 + 0.4 * k),
+    look[2] + (pos[2] - look[2]) * k,
+  ];
+  if (HEAD_SHOTS.has(shot.shotSize)) {
+    look[1] = look[1] + (1.75 - look[1]) * 0.75;
+  }
+
   // handheld drift keeps every shot alive (never a frozen frame)
   const amp = cam.handheld != null ? cam.handheld : 0.035;
+
   pos = [
     pos[0] + noise1(t * 0.9) * amp,
     pos[1] + noise1(t * 1.1 + 10) * amp,
