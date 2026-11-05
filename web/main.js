@@ -717,10 +717,10 @@ function setupShot(shot, frame) {
   const cards = placeCharacters(shot);
   for (const card of cards) card.mat.color.copy(tint);
 
-  // vfx
+  // vfx — R.vfxGroup is a plain {group, updaters} record, not an Object3D
   if (R.vfxGroup) {
-    R.scene.remove(R.vfxGroup);
-    R.vfxGroup.traverse((o) => {
+    R.scene.remove(R.vfxGroup.group);
+    R.vfxGroup.group.traverse((o) => {
       if (o.geometry) o.geometry.dispose();
       if (o.material) o.material.dispose();
     });
